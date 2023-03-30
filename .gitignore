@@ -133,3 +133,4 @@ dmypy.json
 config.json
 *.txt
 /data
+*.ipynb

@@ -107,7 +107,7 @@ def subcategories_download(categories: pd.DataFrame) -> pd.DataFrame:
     #Convert to a pandas DataFrame
     api_df = pd.json_normalize(api_responses, 
                        record_path=['children_categories'], 
-                       meta=['id', 'name', 'total_items_in_this_category', 'picture', 'permalink', 'path_from_root'],
+                       meta=['id', 'name', 'total_items_in_this_category', 'picture', 'permalink'],
                        meta_prefix='category_')
     return api_df
 
@@ -141,8 +141,136 @@ def best_sellers_api(categories):
     return df_concatenado
 
 @task()
-def products_api(df: pd.DataFrame) -> pd.DataFrame:
+def item_format(item: json) -> dict:
+    """Convert item json to dictionary"""
+
+    item_dict = {
+            'id': item['id'],
+            #'site_id': item['site_id'],
+            'title': item['title'],
+            'subtitle': item['subtitle'],
+            'seller_id': item['seller_id'],
+            'category_id': item['category_id'],
+            'official_store_id': item['official_store_id'],
+            'price': item['price'],
+            'base_price': item['base_price'],
+            'original_price': item['original_price'],
+            'currency_id': item['currency_id'],
+            'initial_quantity': item['initial_quantity'],
+            'available_quantity': item['available_quantity'],
+            'sold_quantity': item['sold_quantity'],
+            #'sale_terms': item['sale_terms'],
+            'buying_mode': item['buying_mode'],
+            'listing_type_id': item['listing_type_id'],
+            'start_time': item['start_time'],
+            'stop_time': item['stop_time'],
+            'condition': item['condition'],
+            'permalink': item['permalink'],
+            'thumbnail_id': item['thumbnail_id'],
+            'thumbnail': item['thumbnail'],
+            'secure_thumbnail': item['secure_thumbnail'],
+            #'pictures': item['pictures']
+        }
+    return item_dict
+
+@task()
+def product_format(product: json) -> dict:
+    """Convert product json to dictionary"""
+    
+    id = product['id']
+    name = product['name']
+    status = product['status']
+    sold_quantity = product['sold_quantity']
+    domain_id = product['domain_id']
+    permalink = product['permalink']
+    if product['buy_box_winner'] is not None:
+        buy_box_winner_price = product['buy_box_winner']['price']
+        buy_box_winner_currency_id = product['buy_box_winner']['currency_id']
+        category_id = product['buy_box_winner']['category_id']
+        seller_id = product['buy_box_winner']['seller_id']
+        seller_city = product['buy_box_winner']['seller_address']['city']['name']            
+        seller_state = product['buy_box_winner']['seller_address']['state']['name']
+    else:
+        buy_box_winner_price = None
+        buy_box_winner_currency_id = None
+        category_id = None
+        seller_id = None
+        seller_city = None
+        seller_state = None
+    picture_url = product['pictures'][0]['url']
+    brand = next((attr['value_name'] for attr in product['attributes'] if attr['id'] == 'BRAND'), '')
+    model = next((attr['value_name'] for attr in product['attributes'] if attr['id'] == 'MODEL'), '')
+    color = next((attr['value_name'] for attr in product['attributes'] if attr['id'] == 'COLOR'), '')
+    with_bluetooth = next((attr['meta']['value'] for attr in product['attributes'] if attr['id'] == 'WITH_BLUETOOTH'), False)
+    with_usb = next((attr['meta']['value'] for attr in product['attributes'] if attr['id'] == 'WITH_USB'), False)
+    includes_remote_control = next((attr['meta']['value'] for attr in product['attributes'] if attr['id'] == 'INCLUDES_REMOTE_CONTROL'), False)
+
+    # Create a dictionary with product data
+    product_dict = {
+                'id': id,
+                'name': name,
+                'status': status,
+                'sold_quantity': sold_quantity,
+                'domain_id': domain_id,
+                'permalink': permalink,
+                'buy_box_winner_price': buy_box_winner_price,
+                'buy_box_winner_currency_id': buy_box_winner_currency_id,
+                'category_id': category_id,
+                'seller_id': seller_id,
+                'seller_city': seller_city,
+                'seller_state': seller_state,
+                'picture_url': picture_url,
+                'brand': brand,
+                'model': model,
+                'color': color,
+                'with_bluetooth': with_bluetooth,
+                'with_usb': with_usb,
+                'includes_remote_control': includes_remote_control
+            }
+    return product_dict
+
+@flow(retries=3)
+def products_api(df_best_sellers):
     """Download product information"""
+
+    products_list = []
+    items_list = []
+
+    # Loop through the DataFrame and make an API query for each ID
+    for idx, row in df_best_sellers.iterrows():
+        ids = row['id']
+        types = str(row['type']).lower()
+
+        url = f'https://api.mercadolibre.com/{types}s/{ids}'
+        # Make the query in the API
+        #print(url)
+        
+        response = requests.get(url)
+        
+        if response.status_code == 200:
+            
+            if types == 'item':
+                response = response.json()
+                info_item = item_format(response)
+                # Add to the list
+                items_list.append(info_item)
+                #print(info_item)
+            elif types == 'product':
+                if response.headers['content-type'] == 'application/json':
+                    product = response.json()
+                elif response.headers['content-type'] == 'application/x-ndjson':
+                    product = response.json_lines()
+                    
+                #print(product)
+                info_product = product_format(product)
+                products_list.append(info_product)
+        #else:
+            #raise Exception('API error:', response.status_code)
+
+    # Convert the list of dictionaries into a dataframe
+    df_items = pd.DataFrame(items_list)
+    df_products = pd.DataFrame(products_list)
+    return df_products, df_items
 
 
 @task()
@@ -150,7 +278,7 @@ def write_local(df: pd.DataFrame, dataset_file: str) -> Path:
     """Write DataFrame out locally as parquet file"""
 
     path = Path(f"data/{dataset_file}.parquet")
-    df.to_parquet(path, compression="gzip")
+    df.to_parquet(path)
     return path
 
 @task()
@@ -173,7 +301,7 @@ def etl_parent_flow():
     categories = download_from_api('https://api.mercadolibre.com/sites/MLA/categories')
     path = write_local(categories, "categories")
     write_gcs(path)
-
+    
     subcategories = subcategories_download(categories)
     path = write_local(subcategories, "subcategories")
     write_gcs(path)
@@ -182,9 +310,12 @@ def etl_parent_flow():
     path = write_local(best_sellers, "best_sellers")
     write_gcs(path)
 
-    products = products_api(best_sellers)
+    products, items = products_api(best_sellers)
     path = write_local(products, "products")
     write_gcs(path)
-    
+
+    path = write_local(items, "items")
+    write_gcs(path)
+   
 if __name__ == "__main__":
     etl_parent_flow()
