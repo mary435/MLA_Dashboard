@@ -75,6 +75,18 @@ Now you can test the API with this command for example to check the trends:
 curl -X GET -H 'Authorization: Bearer APP_USR-8432553454451839-003271-be93880a331bXXXXXe2156cb10e2fade-XX1918XX4' https://api.mercadolibre.com/trends/MLA
 ```
 
+## 9. Save the API Information in a file.
+Save the api information in a config.json file, with this format and the data obtained for your app:
+```
+{"access_token": "APP_USR-XXX-XXX-XX-X", 
+"token_type": "Bearer", 
+"expires_in": 21600, 
+"scope": "offline_access read", 
+"user_id": XXX, 
+"refresh_token": "TG-XXX", 
+"expiration_time": "2023-04-04T16:22:24.152470", "secret_key": "XXX"}
+```
+This allows us to then update the token directly from the python script.
 
 ### All API documentation available at:
 https://developers.mercadolibre.com.ar/es_ar/api-docs-es

@@ -14,9 +14,44 @@ The dashboard will allow users to filter products by category and rating within 
 
 ## Final Result
 IMAGEN
+link: https://lookerstudio.google.com/s/vXzwPBAAXHw
 
-## DWH
+### DWH
 Currently, the data warehouse (DWH) is not optimized by partitioning and clustering, since the tables are not expected to grow in size and currently the largest table handled has only 567 rows.
 
 ## How to reproduce this project
+
+1. Initial setup:
+```
+cd Projects
+git clone https://github.com/mary435/MLA_Dashboard.git
+cd MLA_Dashboard
+```
+
+1. Connect to the MLA API. Follow these [steps](How_api_connect.md).
+
+2. Activate your environment and install the [requirements](requirements.txt).
+``` 
+conda activate mla_dashboard
+pip install -r requirements.txt
+```
+3. Start prefect server
+``` 
+prefect orion start
+```
+4. Open up your browser to http://127.0.0.1:4200 to get started. 
+
+5. Folow these [steps](how_connect_gcs.md) to connect prefect to gcs.
+
+6. To create the deployment, run the following command. Which will create the file etl_parent_flow-deployment.yaml and will create the deployment in prefect with the name etl_MLA, scheduled to run daily at 1:00 p.m.:
+```
+prefect deployment build etl_web_to_gcs_bq.py:etl_parent_flow -n etl_MLA --cron "0 13 * * *" -a
+```
+7. Start the default woker agent:
+```
+prefect agent start  --work-queue "default"
+```
+8. The script runs a parent stream and four child streams, with different tasks. This script communicates with the API, downloads the information to a parquet file and saves it first in a bucket and then in the DWH.
+This is what the radar of the flows looks like:
+![Radar](images/radar_flow.png)
 
