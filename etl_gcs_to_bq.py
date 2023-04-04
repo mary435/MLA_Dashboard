@@ -56,8 +56,6 @@ def etl_parent_flow( files: list[str]):
 
 
 if __name__ == "__main__":
-    files = ['categories', 'best_sellers', 'trends', 'items', 'products', 'subcategories']
-    #['best_sellers',  'items' , 'products', 'trends']
-    #'categories', 'items', 'products', 'subcategories', 'trends']
+    files = ['categories', 'best_sellers', 'trends', 'items', 'products', 'subcategories', 'hist_trends']
     etl_parent_flow(files)
     print(f"Total files processed: {files}")

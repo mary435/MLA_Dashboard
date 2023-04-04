@@ -3,6 +3,7 @@ import pandas as pd
 import requests
 from prefect import flow, task
 from prefect_gcp.cloud_storage import GcsBucket
+from prefect_gcp import GcpCredentials
 from datetime import datetime, timedelta
 import json
 
@@ -272,6 +273,23 @@ def products_api(df_best_sellers):
     df_products = pd.DataFrame(products_list)
     return df_products, df_items
 
+@task()
+def save_new_trends(df_trends: pd.DataFrame) -> pd.DataFrame:
+    """Save the trends of each day"""
+
+    hist_trends = pd.read_parquet('data/hist_trends.parquet')
+
+    if not hist_trends.loc[hist_trends['date'] == (datetime.now()).strftime('%Y-%m-%d')].empty:
+        print("There is data for today's date")
+    else:   
+        print("No data for today's date")
+        df_trends['date'] = (datetime.now()).strftime('%Y-%m-%d')
+        df_trends['ranking'] = range(1,len(df_trends)+1)
+        df_trends_old=pd.read_parquet('data/hist_trends')
+        df_merged = pd.concat([df_trends_old, df_trends], ignore_index=True)
+        hist_trends = df_merged
+
+    return hist_trends
 
 @task()
 def write_local(df: pd.DataFrame, dataset_file: str) -> Path:
@@ -291,31 +309,62 @@ def write_gcs(path: Path) -> None:
         to_path=path)
     return
 
+@task()
+def write_bq(df: pd.DataFrame, file:str) -> None:
+    """Write DataFrame to BiqQuery"""
+
+    gcp_credentials_block = GcpCredentials.load("mla-bucket-creds")
+
+    table = f'mla_bq_zoom.{file}'
+
+    df.to_gbq(
+        destination_table=table,
+        project_id="mla-dashboard-zoom",
+        credentials=gcp_credentials_block.get_credentials_from_service_account(),
+        chunksize=500_000,
+        #if_exists="append",
+        if_exists="replace",
+    )
+
 @flow()
 def etl_parent_flow():
 
     trends = download_from_api('https://api.mercadolibre.com/trends/MLA')
-    path = write_local(trends, "trends")
-    write_gcs(path)
+    #path = write_local(trends, "trends")
+    #write_gcs(path)
+    #write_bq(trends,  "trends")
+
+    hist_trends = save_new_trends(trends)
+    #path = write_local(hist_trends, "hist_trends")
+    #write_gcs(path)
 
     categories = download_from_api('https://api.mercadolibre.com/sites/MLA/categories')
-    path = write_local(categories, "categories")
-    write_gcs(path)
+    #path = write_local(categories, "categories")
+    #write_gcs(path)
     
     subcategories = subcategories_download(categories)
-    path = write_local(subcategories, "subcategories")
-    write_gcs(path)
+    #path = write_local(subcategories, "subcategories")
+    #write_gcs(path)
 
     best_sellers = best_sellers_api(categories)
-    path = write_local(best_sellers, "best_sellers")
-    write_gcs(path)
+    #path = write_local(best_sellers, "best_sellers")
+    #write_gcs(path)
 
     products, items = products_api(best_sellers)
-    path = write_local(products, "products")
-    write_gcs(path)
+    #path = write_local(products, "products")
+    #write_gcs(path)
 
-    path = write_local(items, "items")
-    write_gcs(path)
+    #path = write_local(items, "items")
+    #write_gcs(path)
+
+    files = ['categories', 'best_sellers', 'trends', 'items', 'products']#, 'subcategories', 'hist_trends']
+    df = [categories, best_sellers, trends, items, products]#, subcategories, hist_trends]
+
+    for i, file in enumerate(files):
+        print(f'Writing file: {file}')
+        path = write_local(df[i], file)
+        write_gcs(path)
+        write_bq(df[i], file)
    
 if __name__ == "__main__":
     etl_parent_flow()
