@@ -11,11 +11,11 @@
 # How configure dbt to update the data automatically every day:
 1. At the top left look for the deploy option: Click on Environments.
 2. Create Environment.
-3. Chose a name, Environment Type: Deployment and dbt Version latest.
+3. Chose a name: "Production", Environment Type: Deployment and dbt Version latest.
 4. On Deployment Credentials: Dataset: production. And save it.
 5. At the top left look for the deploy option: Click on Jobs.
 6. Create a new Job.
-7. Chose a name, Environment: Production, check on Generate docs on run.
+7. Chose a name, Environment: "Production", check on Generate docs on run.
 8. Add a schedule so that it runs every day at 2:00 p.m. (1 hour later than prefect)
 9. And save.
 10. Run now to try it.
