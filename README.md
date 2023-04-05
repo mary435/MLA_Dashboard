@@ -71,8 +71,9 @@ dbt run
 ```
 dbt build
 ```
-14. Open now datadtudio or lookerstudio. Select create in the upper left corner.And choose the option "Data Source".
-15. Here choose BigQuery and the project name "mla-dashboard-zoom", then the dataset "production" and the table "fact_best_sellers" and now click connect. Now you are ready here you can create the dashboard!
+14. Configure dbt to update the data automatically every day. Folow these [steps](how_connect_dbt.md).
+15. Open now datadtudio or lookerstudio. Select create in the upper left corner.And choose the option "Data Source".
+16. Here choose BigQuery and the project name "mla-dashboard-zoom", then the dataset "production" and the table "fact_best_sellers" and now click connect. Now you are ready here you can create the dashboard!
 
 
 ## Licence 
