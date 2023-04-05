@@ -13,8 +13,10 @@ The dashboard will allow users to filter products by category and rating within 
 ![Transformation](images/dbt_transformation.png)
 
 ## Final Result
-IMAGEN
-link: https://lookerstudio.google.com/s/vXzwPBAAXHw
+
+![Dashboard1](images/Dashboard1.png)
+![Dashboard2](images/Dashboard2.png)
+View the [online dashboard] (https://lookerstudio.google.com/s/vXzwPBAAXHw)
 
 ### DWH
 Currently, the data warehouse (DWH) is not optimized by partitioning and clustering, since the tables are not expected to grow in size and currently the largest table handled has only 567 rows.
@@ -51,7 +53,27 @@ prefect deployment build etl_web_to_gcs_bq.py:etl_parent_flow -n etl_MLA --cron 
 ```
 prefect agent start  --work-queue "default"
 ```
-8. The script runs a parent stream and four child streams, with different tasks. This script communicates with the API, downloads the information to a parquet file and saves it first in a bucket and then in the DWH.
+8. The script runs a parent flow and four child flows, with different tasks. This script communicates with the API, downloads the information to a parquet file and saves it first in a bucket and then in the DWH.
 This is what the radar of the flows looks like:
 ![Radar](images/radar_flow.png)
 
+9.  Create the datasets "dbt_sandbox," "production," and "staging" in BigQuery.
+10. For the dbt transformation clone a new repository:
+```
+git clone https://github.com/mary435/MLA_dbt.git
+```
+11. Create a new account in dbt. And Connect dbt to BigQuery and the new repository then initialize the project. Folow these [steps](how_connect_dbt.md)
+12. Run this command in dbt and you will see how the views and tables go to the bigquery sandbox.
+```
+dbt run
+```
+13. Now run this command in dbt and you will see how the views and tables go to bigquery production and the documentation tab is enabled in dbt with the information of the tables.
+```
+dbt build
+```
+14. Open now datadtudio or lookerstudio. Select create in the upper left corner.And choose the option "Data Source".
+15. Here choose BigQuery and the project name "mla-dashboard-zoom", then the dataset "production" and the table "fact_best_sellers" and now click connect. Now you are ready here you can create the dashboard!
+
+
+## Licence 
+Distributed under the terms of the [MIT](https://opensource.org/license/mit/) license, "MLA_Dashboard" is free and open source software.
