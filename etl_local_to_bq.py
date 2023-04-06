@@ -5,14 +5,6 @@ from prefect_gcp.cloud_storage import GcsBucket
 from prefect_gcp import GcpCredentials
 
 @task(retries=3)
-def extract_from_gcs(file: str) -> Path:
-    """Download file data from GCS"""
-    gcs_path = f"data/{file}.parquet"
-    gcs_block = GcsBucket.load("mla-bucket")
-    gcs_block.get_directory(from_path=gcs_path, local_path=f".")
-    return Path(f"{gcs_path}")
-
-@task(retries=3)
 def transform(path: Path) -> pd.DataFrame:
     """Data cleaning example"""
     df = pd.read_parquet(path) 
@@ -41,7 +33,7 @@ def write_bq(df: pd.DataFrame, file:str) -> None:
 def etl_gcs_to_bq(file: str):
     """Main ETL flow to load data into Big Query"""
 
-    path = extract_from_gcs(file)
+    path = f"data/{file}.parquet"
     df = transform(path)
     write_bq(df, file)
     return len(df)

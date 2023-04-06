@@ -32,6 +32,8 @@ cd MLA_Dashboard
 
 1. Connect to the MLA API. Follow these [steps](How_api_connect.md).
 
+> Alternatively if you don't want to connect to the api, you can use the files I download from the api to my repository in the data folder. And instead of deploying the etl_web_to_gcs_bq.py file to prefect, load this alternative that reads the files locally and loads into bigquery: elt_local_to_bq.py.
+
 2. Activate your environment and install the [requirements](requirements.txt).
 ``` 
 conda activate mla_dashboard
@@ -49,6 +51,9 @@ prefect orion start
 ```
 prefect deployment build etl_web_to_gcs_bq.py:etl_parent_flow -n etl_MLA --cron "0 13 * * *" -a
 ```
+>Remember that if you did not connect to the api here you must change the file.
+``` prefect deployment build elt_local_to_bq.py:etl_parent_flow -n etl_MLA --cron "0 13 * * *" -a```
+
 7. Start the default woker agent:
 ```
 prefect agent start  --work-queue "default"

@@ -330,35 +330,15 @@ def write_bq(df: pd.DataFrame, file:str) -> None:
 def etl_parent_flow():
 
     trends = download_from_api('https://api.mercadolibre.com/trends/MLA')
-    #path = write_local(trends, "trends")
-    #write_gcs(path)
-    #write_bq(trends,  "trends")
-
-    hist_trends = save_new_trends(trends)
-    #path = write_local(hist_trends, "hist_trends")
-    #write_gcs(path)
 
     categories = download_from_api('https://api.mercadolibre.com/sites/MLA/categories')
-    #path = write_local(categories, "categories")
-    #write_gcs(path)
     
-    subcategories = subcategories_download(categories)
-    #path = write_local(subcategories, "subcategories")
-    #write_gcs(path)
-
     best_sellers = best_sellers_api(categories)
-    #path = write_local(best_sellers, "best_sellers")
-    #write_gcs(path)
 
     products, items = products_api(best_sellers)
-    #path = write_local(products, "products")
-    #write_gcs(path)
 
-    #path = write_local(items, "items")
-    #write_gcs(path)
-
-    files = ['categories', 'best_sellers', 'trends', 'items', 'products']#, 'subcategories', 'hist_trends']
-    df = [categories, best_sellers, trends, items, products]#, subcategories, hist_trends]
+    files = ['categories', 'best_sellers', 'trends', 'items', 'products']
+    df = [categories, best_sellers, trends, items, products]
 
     for i, file in enumerate(files):
         print(f'Writing file: {file}')
