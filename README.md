@@ -16,7 +16,6 @@ The dashboard will allow users to filter products by category and rating within 
 
 ![Dashboard1](images/Dashboard1.png)
 ![Dashboard2](images/Dashboard2.png)
-View the [online dashboard](https://lookerstudio.google.com/s/vXzwPBAAXHw)
 
 ### DWH
 Currently, the data warehouse (DWH) is not optimized by partitioning and clustering, since the tables are not expected to grow in size and currently the largest table handled has only 567 rows.
